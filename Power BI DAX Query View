@@ -1,0 +1,307 @@
+DEFINE
+
+//--------------------------------------------
+// BASIC COUNTS / COVERAGE
+//--------------------------------------------
+MEASURE 'Top-50-world'[Rows] =
+    COUNTROWS('Top-50-world')
+
+MEASURE 'Top-50-world'[Distinct Songs] =
+    DISTINCTCOUNT('Top-50-world'[song])
+
+MEASURE 'Top-50-world'[Distinct Artists] =
+    DISTINCTCOUNT('Top-50-world'[artist])
+
+MEASURE 'Top-50-world'[Distinct Album Covers] =
+    DISTINCTCOUNT('Top-50-world'[album_cover_url])
+
+MEASURE 'Top-50-world'[Chart Dates] =
+    DISTINCTCOUNT('Top-50-world'[date])
+
+MEASURE 'Top-50-world'[Entries (Song-Day)] =
+    COUNTROWS('Top-50-world')
+
+MEASURE 'Top-50-world'[Entries per Date] =
+    DIVIDE(
+        [Entries (Song-Day)],
+        [Chart Dates]
+    )
+
+//--------------------------------------------
+// POSITION / RANK METRICS
+//--------------------------------------------
+MEASURE 'Top-50-world'[Avg Position] =
+    AVERAGE('Top-50-world'[position])
+
+MEASURE 'Top-50-world'[Peak (Best) Position] =
+    MIN('Top-50-world'[position])
+
+MEASURE 'Top-50-world'[Worst Position] =
+    MAX('Top-50-world'[position])
+
+MEASURE 'Top-50-world'[Median Position] =
+    MEDIAN('Top-50-world'[position])
+
+MEASURE 'Top-50-world'[Top 1 Days] =
+    CALCULATE(
+        COUNTROWS('Top-50-world'),
+        'Top-50-world'[position] = 1
+    )
+
+MEASURE 'Top-50-world'[Top 10 Days] =
+    CALCULATE(
+        COUNTROWS('Top-50-world'),
+        'Top-50-world'[position] <= 10
+    )
+
+MEASURE 'Top-50-world'[Top 20 Days] =
+    CALCULATE(
+        COUNTROWS('Top-50-world'),
+        'Top-50-world'[position] <= 20
+    )
+
+MEASURE 'Top-50-world'[Top 50 Days] =
+    CALCULATE(
+        COUNTROWS('Top-50-world'),
+        'Top-50-world'[position] <= 50
+    )
+
+MEASURE 'Top-50-world'[Top 10 Share %] =
+    DIVIDE(
+        [Top 10 Days],
+        [Entries (Song-Day)]
+    )
+
+MEASURE 'Top-50-world'[Top 20 Share %] =
+    DIVIDE(
+        [Top 20 Days],
+        [Entries (Song-Day)]
+    )
+
+MEASURE 'Top-50-world'[Top 50 Share %] =
+    DIVIDE(
+        [Top 50 Days],
+        [Entries (Song-Day)]
+    )
+
+// Rank score: Position 1 gets 50 points, Position 50 gets 1 point
+MEASURE 'Top-50-world'[Position Score] =
+    SUMX(
+        'Top-50-world',
+        51 - 'Top-50-world'[position]
+    )
+
+MEASURE 'Top-50-world'[Avg Position Score] =
+    AVERAGEX(
+        'Top-50-world',
+        51 - 'Top-50-world'[position]
+    )
+
+//--------------------------------------------
+// POPULARITY METRICS
+//--------------------------------------------
+MEASURE 'Top-50-world'[Avg Popularity] =
+    AVERAGE('Top-50-world'[popularity])
+
+MEASURE 'Top-50-world'[Max Popularity] =
+    MAX('Top-50-world'[popularity])
+
+MEASURE 'Top-50-world'[Min Popularity] =
+    MIN('Top-50-world'[popularity])
+
+MEASURE 'Top-50-world'[Median Popularity] =
+    MEDIAN('Top-50-world'[popularity])
+
+MEASURE 'Top-50-world'[Avg Popularity (Top 10)] =
+    CALCULATE(
+        AVERAGE('Top-50-world'[popularity]),
+        'Top-50-world'[position] <= 10
+    )
+
+MEASURE 'Top-50-world'[Popularity Weighted by Rank] =
+VAR _weighted =
+    SUMX(
+        'Top-50-world',
+        'Top-50-world'[popularity] * (51 - 'Top-50-world'[position])
+    )
+RETURN
+    DIVIDE(_weighted, [Position Score])
+
+//--------------------------------------------
+// DURATION METRICS
+//--------------------------------------------
+MEASURE 'Top-50-world'[Avg Duration (ms)] =
+    AVERAGE('Top-50-world'[duration_ms])
+
+MEASURE 'Top-50-world'[Avg Duration (minutes)] =
+    DIVIDE([Avg Duration (ms)], 60000)
+
+MEASURE 'Top-50-world'[Min Duration (ms)] =
+    MIN('Top-50-world'[duration_ms])
+
+MEASURE 'Top-50-world'[Max Duration (ms)] =
+    MAX('Top-50-world'[duration_ms])
+
+MEASURE 'Top-50-world'[Median Duration (ms)] =
+    MEDIAN('Top-50-world'[duration_ms])
+
+MEASURE 'Top-50-world'[Avg Duration (Top 10) minutes] =
+    DIVIDE(
+        CALCULATE(
+            AVERAGE('Top-50-world'[duration_ms]),
+            'Top-50-world'[position] <= 10
+        ),
+        60000
+    )
+
+//--------------------------------------------
+// EXPLICIT CONTENT METRICS
+//--------------------------------------------
+MEASURE 'Top-50-world'[Explicit Entries] =
+    CALCULATE(
+        COUNTROWS('Top-50-world'),
+        'Top-50-world'[is_explicit] = TRUE()
+    )
+
+MEASURE 'Top-50-world'[Non-Explicit Entries] =
+    CALCULATE(
+        COUNTROWS('Top-50-world'),
+        'Top-50-world'[is_explicit] = FALSE()
+    )
+
+MEASURE 'Top-50-world'[Explicit Share %] =
+    DIVIDE(
+        [Explicit Entries],
+        [Entries (Song-Day)]
+    )
+
+MEASURE 'Top-50-world'[Avg Popularity (Explicit)] =
+    CALCULATE(
+        AVERAGE('Top-50-world'[popularity]),
+        'Top-50-world'[is_explicit] = TRUE()
+    )
+
+MEASURE 'Top-50-world'[Avg Popularity (Non-Explicit)] =
+    CALCULATE(
+        AVERAGE('Top-50-world'[popularity]),
+        'Top-50-world'[is_explicit] = FALSE()
+    )
+
+MEASURE 'Top-50-world'[Avg Position (Explicit)] =
+    CALCULATE(
+        AVERAGE('Top-50-world'[position]),
+        'Top-50-world'[is_explicit] = TRUE()
+    )
+
+MEASURE 'Top-50-world'[Avg Position (Non-Explicit)] =
+    CALCULATE(
+        AVERAGE('Top-50-world'[position]),
+        'Top-50-world'[is_explicit] = FALSE()
+    )
+
+//--------------------------------------------
+// RELEASE / RECENCY METRICS
+//--------------------------------------------
+MEASURE 'Top-50-world'[Latest Chart Date] =
+    MAX('Top-50-world'[date])
+
+MEASURE 'Top-50-world'[Earliest Chart Date] =
+    MIN('Top-50-world'[date])
+
+MEASURE 'Top-50-world'[Latest Release Date] =
+    MAX('Top-50-world'[release_date])
+
+MEASURE 'Top-50-world'[Earliest Release Date] =
+    MIN('Top-50-world'[release_date])
+
+MEASURE 'Top-50-world'[Avg Days Since Release] =
+VAR _latest = [Latest Chart Date]
+RETURN
+    AVERAGEX(
+        'Top-50-world',
+        DATEDIFF('Top-50-world'[release_date], _latest, DAY)
+    )
+
+MEASURE 'Top-50-world'[Avg Days Since Release (Top 10)] =
+VAR _latest = [Latest Chart Date]
+RETURN
+    CALCULATE(
+        AVERAGEX(
+            'Top-50-world',
+            DATEDIFF('Top-50-world'[release_date], _latest, DAY)
+        ),
+        'Top-50-world'[position] <= 10
+    )
+
+//--------------------------------------------
+// ALBUM STRUCTURE
+//--------------------------------------------
+MEASURE 'Top-50-world'[Avg Total Tracks] =
+    AVERAGE('Top-50-world'[total_tracks])
+
+MEASURE 'Top-50-world'[Album Types Count] =
+    DISTINCTCOUNT('Top-50-world'[album_type])
+
+MEASURE 'Top-50-world'[Avg Popularity by Album Type] =
+    AVERAGE('Top-50-world'[popularity])
+
+//--------------------------------------------
+// FINAL OUTPUT TABLE (All Measures in 1 Row)
+//--------------------------------------------
+EVALUATE
+SUMMARIZECOLUMNS(
+    "Rows", [Rows],
+    "Distinct Songs", [Distinct Songs],
+    "Distinct Artists", [Distinct Artists],
+    "Distinct Album Covers", [Distinct Album Covers],
+    "Chart Dates", [Chart Dates],
+    "Entries (Song-Day)", [Entries (Song-Day)],
+    "Entries per Date", [Entries per Date],
+
+    "Avg Position", [Avg Position],
+    "Peak (Best) Position", [Peak (Best) Position],
+    "Worst Position", [Worst Position],
+    "Median Position", [Median Position],
+    "Top 1 Days", [Top 1 Days],
+    "Top 10 Days", [Top 10 Days],
+    "Top 20 Days", [Top 20 Days],
+    "Top 50 Days", [Top 50 Days],
+    "Top 10 Share %", [Top 10 Share %],
+    "Top 20 Share %", [Top 20 Share %],
+    "Top 50 Share %", [Top 50 Share %],
+    "Position Score", [Position Score],
+    "Avg Position Score", [Avg Position Score],
+
+    "Avg Popularity", [Avg Popularity],
+    "Max Popularity", [Max Popularity],
+    "Min Popularity", [Min Popularity],
+    "Median Popularity", [Median Popularity],
+    "Avg Popularity (Top 10)", [Avg Popularity (Top 10)],
+    "Popularity Weighted by Rank", [Popularity Weighted by Rank],
+
+    "Avg Duration (ms)", [Avg Duration (ms)],
+    "Avg Duration (minutes)", [Avg Duration (minutes)],
+    "Min Duration (ms)", [Min Duration (ms)],
+    "Max Duration (ms)", [Max Duration (ms)],
+    "Median Duration (ms)", [Median Duration (ms)],
+    "Avg Duration (Top 10) minutes", [Avg Duration (Top 10) minutes],
+
+    "Explicit Entries", [Explicit Entries],
+    "Non-Explicit Entries", [Non-Explicit Entries],
+    "Explicit Share %", [Explicit Share %],
+    "Avg Popularity (Explicit)", [Avg Popularity (Explicit)],
+    "Avg Popularity (Non-Explicit)", [Avg Popularity (Non-Explicit)],
+    "Avg Position (Explicit)", [Avg Position (Explicit)],
+    "Avg Position (Non-Explicit)", [Avg Position (Non-Explicit)],
+
+    "Latest Chart Date", [Latest Chart Date],
+    "Earliest Chart Date", [Earliest Chart Date],
+    "Latest Release Date", [Latest Release Date],
+    "Earliest Release Date", [Earliest Release Date],
+    "Avg Days Since Release", [Avg Days Since Release],
+    "Avg Days Since Release (Top 10)", [Avg Days Since Release (Top 10)],
+
+    "Avg Total Tracks", [Avg Total Tracks],
+    "Album Types Count", [Album Types Count],
+    "Avg Popularity by Album Type", [Avg Popularity by Album Type]
+)
